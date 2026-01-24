@@ -92,23 +92,27 @@ export default function HomePage() {
   };
 
   const handleAddExpense = (expenseData: ExpenseFormValues) => {
+    const expenseMonth = formatDate(expenseData.date, "yyyy-MM");
     const newExpense: Expense = {
       id: new Date().toISOString(),
-      ...expenseData,
+      description: expenseData.description,
+      amount: expenseData.amount,
+      date: formatDate(expenseData.date, "yyyy-MM-dd HH:mm"),
     };
     setAllData((prev) => {
-      const monthData = prev[selectedMonth] || {
+      const monthData = prev[expenseMonth] || {
         monthlyIncome: 0,
         expenses: [],
       };
       return {
         ...prev,
-        [selectedMonth]: {
+        [expenseMonth]: {
           ...monthData,
           expenses: [newExpense, ...monthData.expenses],
         },
       };
     });
+    setSelectedMonth(expenseMonth);
   };
 
   const handleMonthChange = (month: string) => {
@@ -134,7 +138,7 @@ export default function HomePage() {
       <header className="bg-card p-4 shadow-sm border-b">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <h1 className="text-xl font-bold text-foreground">
-            Gastos Flia Ruales Sanango
+            Gastos - Ruales Sanango
           </h1>
           <MonthSelector
             selectedMonth={selectedMonth}
@@ -148,12 +152,12 @@ export default function HomePage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
               <CardTitle className="text-sm font-medium">
-                Monthly Income
+                Ingresos
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="flex items-center justify-between p-4 pt-0">
-              <p className="text-xl font-bold text-green-600 sm:text-2xl">
+              <p className="text-xl font-bold text-blue-600 sm:text-2xl">
                 {formatCurrency(currentData.monthlyIncome)}
               </p>
               <Button
@@ -169,7 +173,7 @@ export default function HomePage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
               <CardTitle className="text-sm font-medium">
-                Total Expenses
+                Gastos
               </CardTitle>
               <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -182,7 +186,7 @@ export default function HomePage() {
           <Card className="border-primary/40 bg-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
               <CardTitle className="text-sm font-medium">
-                Remaining Balance
+                Saldo
               </CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -199,7 +203,6 @@ export default function HomePage() {
         </div>
 
         <div className="space-y-3">
-          <h2 className="text-xl font-bold">Gastos</h2>
           <Separator />
           <ExpenseList expenses={currentData.expenses} />
         </div>

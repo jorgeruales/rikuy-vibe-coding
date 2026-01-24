@@ -44,9 +44,9 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
   if (expenses.length === 0) {
     return (
       <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed bg-card/50 p-8 text-center text-muted-foreground">
-        <p className="text-lg font-medium">No expenses yet!</p>
+        <p className="text-lg font-medium">No hay gastos registrados!</p>
         <p className="mt-2 text-sm">
-          Click the '+' button to add your first expense.
+          Click en '+' para agregar.
         </p>
       </div>
     );
@@ -63,7 +63,7 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
               </div>
               <div>
                 <p className="font-semibold capitalize">{expense.description}</p>
-                <p className="text-sm text-muted-foreground">Expense</p>
+                <p className="text-sm text-muted-foreground">{expense.date}</p>
               </div>
             </div>
             <p className="text-lg font-bold text-destructive">
