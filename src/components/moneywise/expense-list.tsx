@@ -3,11 +3,20 @@
 import type { Expense } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
-import { CreditCard, ShoppingBag, Utensils, Zap, Bus } from "lucide-react";
+import {
+  CreditCard,
+  ShoppingBag,
+  Utensils,
+  Zap,
+  Bus,
+  Edit,
+} from "lucide-react";
 import React from "react";
+import { Button } from "../ui/button";
 
 interface ExpenseListProps {
   expenses: Expense[];
+  onEdit: (expense: Expense) => void;
 }
 
 const categoryIcons: { [key: string]: React.ReactNode } = {
@@ -40,14 +49,12 @@ const getIconForDescription = (description: string) => {
   return categoryIcons.default;
 };
 
-export function ExpenseList({ expenses }: ExpenseListProps) {
+export function ExpenseList({ expenses, onEdit }: ExpenseListProps) {
   if (expenses.length === 0) {
     return (
       <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed bg-card/50 p-8 text-center text-muted-foreground">
         <p className="text-lg font-medium">No hay gastos registrados!</p>
-        <p className="mt-2 text-sm">
-          Click en '+' para agregar.
-        </p>
+        <p className="mt-2 text-sm">Click en '+' para agregar.</p>
       </div>
     );
   }
@@ -66,9 +73,20 @@ export function ExpenseList({ expenses }: ExpenseListProps) {
                 <p className="text-sm text-muted-foreground">{expense.date}</p>
               </div>
             </div>
-            <p className="text-lg font-bold text-destructive">
-              -{formatCurrency(expense.amount)}
-            </p>
+            <div className="flex items-center gap-2">
+              <p className="text-lg font-bold text-destructive">
+                -{formatCurrency(expense.amount)}
+              </p>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={() => onEdit(expense)}
+              >
+                <Edit className="h-4 w-4" />
+                <span className="sr-only">Edit Expense</span>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       ))}

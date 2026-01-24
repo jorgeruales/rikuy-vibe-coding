@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,6 +23,7 @@ import {
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Calendar } from "@/components/ui/calendar";
+import type { Expense } from "@/lib/types";
 
 const expenseSchema = z.object({
   description: z.string().min(1, "Description is required."),
@@ -36,25 +38,36 @@ export type ExpenseFormValues = z.infer<typeof expenseSchema>;
 interface ExpenseFormProps {
   onSave: (expense: ExpenseFormValues) => void;
   onClose: () => void;
+  expenseToEdit?: Expense | null;
 }
 
-export function ExpenseForm({ onSave, onClose }: ExpenseFormProps) {
+export function ExpenseForm({
+  onSave,
+  onClose,
+  expenseToEdit,
+}: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
-    defaultValues: {
-      description: "",
-      amount: undefined,
-      date: new Date(),
-    },
   });
+
+  useEffect(() => {
+    if (expenseToEdit) {
+      form.reset({
+        description: expenseToEdit.description,
+        amount: expenseToEdit.amount,
+        date: new Date(expenseToEdit.date),
+      });
+    } else {
+      form.reset({
+        description: "",
+        amount: undefined,
+        date: new Date(),
+      });
+    }
+  }, [expenseToEdit, form]);
 
   const onSubmit = (data: ExpenseFormValues) => {
     onSave(data);
-    form.reset({
-      description: "",
-      amount: undefined,
-      date: new Date(),
-    });
     onClose();
   };
 
@@ -141,7 +154,9 @@ export function ExpenseForm({ onSave, onClose }: ExpenseFormProps) {
           <Button type="button" variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">Add Expense</Button>
+          <Button type="submit">
+            {expenseToEdit ? "Save Changes" : "Add Expense"}
+          </Button>
         </div>
       </form>
     </Form>

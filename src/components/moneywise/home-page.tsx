@@ -43,6 +43,7 @@ export default function HomePage() {
 
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -91,28 +92,64 @@ export default function HomePage() {
     }));
   };
 
-  const handleAddExpense = (expenseData: ExpenseFormValues) => {
-    const expenseMonth = formatDate(expenseData.date, "yyyy-MM");
-    const newExpense: Expense = {
-      id: new Date().toISOString(),
-      description: expenseData.description,
-      amount: expenseData.amount,
-      date: formatDate(expenseData.date, "yyyy-MM-dd HH:mm"),
-    };
+  const handleEditClick = (expense: Expense) => {
+    setEditingExpense(expense);
+    setExpenseModalOpen(true);
+  };
+
+  const handleCloseExpenseModal = () => {
+    setExpenseModalOpen(false);
+    setEditingExpense(null);
+  };
+
+  const handleSaveExpense = (expenseData: ExpenseFormValues) => {
+    const targetMonth = formatDate(expenseData.date, "yyyy-MM");
+
     setAllData((prev) => {
-      const monthData = prev[expenseMonth] || {
+      const newData = { ...prev };
+
+      // If editing, first remove the old one
+      if (editingExpense) {
+        const originalMonth = formatDate(new Date(editingExpense.date), "yyyy-MM");
+        if (newData[originalMonth]) {
+          newData[originalMonth].expenses = newData[originalMonth].expenses.filter(
+            (exp) => exp.id !== editingExpense.id
+          );
+        }
+      }
+
+      // Now, add the new/updated expense
+      const expenseToAdd: Expense = {
+        id: editingExpense ? editingExpense.id : new Date().toISOString(),
+        description: expenseData.description,
+        amount: expenseData.amount,
+        date: formatDate(expenseData.date, "yyyy-MM-dd HH:mm"),
+      };
+
+      const monthData = newData[targetMonth] || {
         monthlyIncome: 0,
         expenses: [],
       };
-      return {
-        ...prev,
-        [expenseMonth]: {
-          ...monthData,
-          expenses: [newExpense, ...monthData.expenses],
-        },
+
+      const newExpenses = [...monthData.expenses, expenseToAdd].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
+      newData[targetMonth] = {
+        ...monthData,
+        expenses: newExpenses,
       };
+
+      if (editingExpense && !newData[targetMonth].monthlyIncome) {
+        newData[targetMonth].monthlyIncome =
+          prev[selectedMonth]?.monthlyIncome || 0;
+      }
+
+      return newData;
     });
-    setSelectedMonth(expenseMonth);
+
+    setSelectedMonth(targetMonth);
+    handleCloseExpenseModal();
   };
 
   const handleMonthChange = (month: string) => {
@@ -151,9 +188,7 @@ export default function HomePage() {
         <div className="grid grid-cols-3 gap-2 md:gap-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Ingresos
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Ingresos</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="flex items-center justify-between p-4 pt-0">
@@ -172,9 +207,7 @@ export default function HomePage() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Gastos
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Gastos</CardTitle>
               <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-4 pt-0">
@@ -185,9 +218,7 @@ export default function HomePage() {
           </Card>
           <Card className="border-primary/40 bg-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Saldo
-              </CardTitle>
+              <CardTitle className="text-sm font-medium">Saldo</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-4 pt-0">
@@ -204,13 +235,19 @@ export default function HomePage() {
 
         <div className="space-y-3">
           <Separator />
-          <ExpenseList expenses={currentData.expenses} />
+          <ExpenseList
+            expenses={currentData.expenses}
+            onEdit={handleEditClick}
+          />
         </div>
       </main>
 
       <div className="fixed bottom-6 right-6 z-50">
         <Button
-          onClick={() => setExpenseModalOpen(true)}
+          onClick={() => {
+            setEditingExpense(null);
+            setExpenseModalOpen(true);
+          }}
           className="h-14 w-14 rounded-full shadow-lg"
         >
           <Plus className="h-6 w-6" />
@@ -225,14 +262,26 @@ export default function HomePage() {
         currentIncome={currentData.monthlyIncome}
       />
 
-      <Dialog open={isExpenseModalOpen} onOpenChange={setExpenseModalOpen}>
+      <Dialog
+        open={isExpenseModalOpen}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            handleCloseExpenseModal();
+          } else {
+            setExpenseModalOpen(true);
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>Add New Expense</DialogTitle>
+            <DialogTitle>
+              {editingExpense ? "Edit Expense" : "Add New Expense"}
+            </DialogTitle>
           </DialogHeader>
           <ExpenseForm
-            onSave={handleAddExpense}
-            onClose={() => setExpenseModalOpen(false)}
+            onSave={handleSaveExpense}
+            onClose={handleCloseExpenseModal}
+            expenseToEdit={editingExpense}
           />
         </DialogContent>
       </Dialog>
