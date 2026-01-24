@@ -31,6 +31,7 @@ import {
 } from "@/components/moneywise/expense-form";
 import { ExpenseList } from "@/components/moneywise/expense-list";
 import { MonthSelector } from "./month-selector";
+import { Separator } from "@/components/ui/separator";
 
 const STORAGE_KEY = "moneywise_data";
 const initialMonth = formatDate(new Date(), "yyyy-MM");
@@ -130,7 +131,7 @@ export default function HomePage() {
 
   return (
     <div className="flex h-dvh flex-col bg-background font-body text-foreground">
-      <header className="bg-card p-4 shadow-sm">
+      <header className="bg-card p-4 shadow-sm border-b">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <h1 className="text-xl font-bold text-foreground">
             Gastos Flia Ruales Sanango
@@ -197,7 +198,11 @@ export default function HomePage() {
           </Card>
         </div>
 
-        <ExpenseList expenses={currentData.expenses} />
+        <div className="space-y-3">
+          <h2 className="text-xl font-bold">Gastos</h2>
+          <Separator />
+          <ExpenseList expenses={currentData.expenses} />
+        </div>
       </main>
 
       <div className="fixed bottom-6 right-6 z-50">
