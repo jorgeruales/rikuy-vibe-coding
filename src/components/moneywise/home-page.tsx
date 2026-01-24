@@ -22,21 +22,22 @@ import {
   Wallet,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import type { TransactionData, Expense } from "@/lib/types";
+import { format as formatDate } from "date-fns";
+import type { AllTransactions, Expense } from "@/lib/types";
 import { IncomeModal } from "@/components/moneywise/income-modal";
 import {
   ExpenseForm,
   type ExpenseFormValues,
 } from "@/components/moneywise/expense-form";
 import { ExpenseList } from "@/components/moneywise/expense-list";
+import { MonthSelector } from "./month-selector";
 
 const STORAGE_KEY = "moneywise_data";
+const initialMonth = formatDate(new Date(), "yyyy-MM");
 
 export default function HomePage() {
-  const [data, setData] = useState<TransactionData>({
-    monthlyIncome: 0,
-    expenses: [],
-  });
+  const [allData, setAllData] = useState<AllTransactions>({});
+  const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
   const [isClient, setIsClient] = useState(false);
 
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
@@ -47,32 +48,46 @@ export default function HomePage() {
     try {
       const storedData = localStorage.getItem(STORAGE_KEY);
       if (storedData) {
-        setData(JSON.parse(storedData));
+        setAllData(JSON.parse(storedData));
+      } else {
+        // Initialize for current month if no data exists
+        setAllData({ [initialMonth]: { monthlyIncome: 0, expenses: [] } });
       }
     } catch (error) {
       console.error("Failed to parse data from localStorage", error);
+      setAllData({ [initialMonth]: { monthlyIncome: 0, expenses: [] } });
     }
   }, []);
 
   useEffect(() => {
     if (isClient) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
     }
-  }, [data, isClient]);
+  }, [allData, isClient]);
+
+  const currentData = useMemo(() => {
+    return allData[selectedMonth] || { monthlyIncome: 0, expenses: [] };
+  }, [allData, selectedMonth]);
 
   const remainingBalance = useMemo(() => {
     return (
-      data.monthlyIncome -
-      data.expenses.reduce((sum, exp) => sum + exp.amount, 0)
+      currentData.monthlyIncome -
+      currentData.expenses.reduce((sum, exp) => sum + exp.amount, 0)
     );
-  }, [data]);
+  }, [currentData]);
 
   const totalExpenses = useMemo(() => {
-    return data.expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  }, [data.expenses]);
+    return currentData.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  }, [currentData.expenses]);
 
   const handleSetIncome = (income: number) => {
-    setData((prev) => ({ ...prev, monthlyIncome: income }));
+    setAllData((prev) => ({
+      ...prev,
+      [selectedMonth]: {
+        ...(prev[selectedMonth] || { expenses: [] }),
+        monthlyIncome: income,
+      },
+    }));
   };
 
   const handleAddExpense = (expenseData: ExpenseFormValues) => {
@@ -80,7 +95,29 @@ export default function HomePage() {
       id: new Date().toISOString(),
       ...expenseData,
     };
-    setData((prev) => ({ ...prev, expenses: [newExpense, ...prev.expenses] }));
+    setAllData((prev) => {
+      const monthData = prev[selectedMonth] || {
+        monthlyIncome: 0,
+        expenses: [],
+      };
+      return {
+        ...prev,
+        [selectedMonth]: {
+          ...monthData,
+          expenses: [newExpense, ...monthData.expenses],
+        },
+      };
+    });
+  };
+
+  const handleMonthChange = (month: string) => {
+    if (!allData[month]) {
+      setAllData((prev) => ({
+        ...prev,
+        [month]: { monthlyIncome: 0, expenses: [] },
+      }));
+    }
+    setSelectedMonth(month);
   };
 
   if (!isClient) {
@@ -93,11 +130,15 @@ export default function HomePage() {
 
   return (
     <div className="flex h-dvh flex-col bg-background font-body text-foreground">
-      <header
-        className="p-4 shadow-sm"
-      >
+      <header className="bg-card p-4 shadow-sm">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground">Gastos Flia Ruales Sanango</h1>
+          <h1 className="text-xl font-bold text-foreground">
+            Gastos Flia Ruales Sanango
+          </h1>
+          <MonthSelector
+            selectedMonth={selectedMonth}
+            onMonthChange={handleMonthChange}
+          />
         </div>
       </header>
 
@@ -111,10 +152,8 @@ export default function HomePage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="flex items-center justify-between p-4 pt-0">
-              <p
-                className="text-xl font-bold text-green-600 sm:text-2xl"
-              >
-                {formatCurrency(data.monthlyIncome)}
+              <p className="text-xl font-bold text-green-600 sm:text-2xl">
+                {formatCurrency(currentData.monthlyIncome)}
               </p>
               <Button
                 variant="ghost"
@@ -139,7 +178,7 @@ export default function HomePage() {
               </p>
             </CardContent>
           </Card>
-          <Card className="bg-primary/10 border-primary/40">
+          <Card className="border-primary/40 bg-primary/10">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
               <CardTitle className="text-sm font-medium">
                 Remaining Balance
@@ -158,7 +197,7 @@ export default function HomePage() {
           </Card>
         </div>
 
-        <ExpenseList expenses={data.expenses} />
+        <ExpenseList expenses={currentData.expenses} />
       </main>
 
       <div className="fixed bottom-6 right-6 z-50">
@@ -175,7 +214,7 @@ export default function HomePage() {
         isOpen={isIncomeModalOpen}
         onClose={() => setIncomeModalOpen(false)}
         onSave={handleSetIncome}
-        currentIncome={data.monthlyIncome}
+        currentIncome={currentData.monthlyIncome}
       />
 
       <Dialog open={isExpenseModalOpen} onOpenChange={setExpenseModalOpen}>
