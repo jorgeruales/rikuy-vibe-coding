@@ -55,7 +55,7 @@ export function ExpenseForm({
       form.reset({
         description: expenseToEdit.description,
         amount: expenseToEdit.amount,
-        date: new Date(expenseToEdit.date),
+        date: expenseToEdit.date ? new Date(expenseToEdit.date) : new Date(),
       });
     } else {
       form.reset({
