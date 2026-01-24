@@ -15,6 +15,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Edit,
   Plus,
   TrendingUp,
@@ -44,6 +54,7 @@ export default function HomePage() {
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
+  const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
   useEffect(() => {
     setIsClient(true);
@@ -97,6 +108,27 @@ export default function HomePage() {
     setExpenseModalOpen(true);
   };
 
+  const handleDeleteClick = (expense: Expense) => {
+    setExpenseToDelete(expense);
+  };
+
+  const confirmDeleteExpense = () => {
+    if (!expenseToDelete) return;
+
+    const targetMonth = formatDate(new Date(expenseToDelete.date), "yyyy-MM");
+
+    setAllData((prev) => {
+      const newData = { ...prev };
+      if (newData[targetMonth]) {
+        newData[targetMonth].expenses = newData[targetMonth].expenses.filter(
+          (exp) => exp.id !== expenseToDelete.id
+        );
+      }
+      return newData;
+    });
+    setExpenseToDelete(null);
+  };
+
   const handleCloseExpenseModal = () => {
     setExpenseModalOpen(false);
     setEditingExpense(null);
@@ -110,11 +142,15 @@ export default function HomePage() {
 
       // If editing, first remove the old one
       if (editingExpense) {
-        const originalMonth = formatDate(new Date(editingExpense.date), "yyyy-MM");
+        const originalMonth = formatDate(
+          new Date(editingExpense.date),
+          "yyyy-MM"
+        );
         if (newData[originalMonth]) {
-          newData[originalMonth].expenses = newData[originalMonth].expenses.filter(
-            (exp) => exp.id !== editingExpense.id
-          );
+          newData[originalMonth].expenses =
+            newData[originalMonth].expenses.filter(
+              (exp) => exp.id !== editingExpense.id
+            );
         }
       }
 
@@ -238,6 +274,7 @@ export default function HomePage() {
           <ExpenseList
             expenses={currentData.expenses}
             onEdit={handleEditClick}
+            onDelete={handleDeleteClick}
           />
         </div>
       </main>
@@ -285,6 +322,34 @@ export default function HomePage() {
           />
         </DialogContent>
       </Dialog>
+
+      <AlertDialog
+        open={!!expenseToDelete}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setExpenseToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete this
+              expense.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteExpense}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

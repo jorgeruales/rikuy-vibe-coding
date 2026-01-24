@@ -10,6 +10,7 @@ import {
   Zap,
   Bus,
   Edit,
+  Trash2,
 } from "lucide-react";
 import React from "react";
 import { Button } from "../ui/button";
@@ -17,6 +18,7 @@ import { Button } from "../ui/button";
 interface ExpenseListProps {
   expenses: Expense[];
   onEdit: (expense: Expense) => void;
+  onDelete: (expense: Expense) => void;
 }
 
 const categoryIcons: { [key: string]: React.ReactNode } = {
@@ -49,7 +51,7 @@ const getIconForDescription = (description: string) => {
   return categoryIcons.default;
 };
 
-export function ExpenseList({ expenses, onEdit }: ExpenseListProps) {
+export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
   if (expenses.length === 0) {
     return (
       <div className="flex h-64 flex-col items-center justify-center rounded-lg border-2 border-dashed bg-card/50 p-8 text-center text-muted-foreground">
@@ -85,6 +87,15 @@ export function ExpenseList({ expenses, onEdit }: ExpenseListProps) {
               >
                 <Edit className="h-4 w-4" />
                 <span className="sr-only">Edit Expense</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => onDelete(expense)}
+              >
+                <Trash2 className="h-4 w-4" />
+                <span className="sr-only">Delete Expense</span>
               </Button>
             </div>
           </CardContent>
