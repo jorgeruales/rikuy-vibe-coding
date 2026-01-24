@@ -17,7 +17,6 @@ import {
 import {
   Edit,
   Plus,
-  Sparkles,
   TrendingUp,
   TrendingDown,
   Wallet,
@@ -30,8 +29,6 @@ import {
   type ExpenseFormValues,
 } from "@/components/moneywise/expense-form";
 import { ExpenseList } from "@/components/moneywise/expense-list";
-import { InsightsModal } from "@/components/moneywise/insights-modal";
-import { getFinancialInsightsAction } from "@/app/actions";
 
 const STORAGE_KEY = "moneywise_data";
 
@@ -44,10 +41,6 @@ export default function HomePage() {
 
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
-  const [isInsightsModalOpen, setInsightsModalOpen] = useState(false);
-
-  const [insights, setInsights] = useState("");
-  const [isInsightsLoading, setInsightsLoading] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -90,20 +83,6 @@ export default function HomePage() {
     setData((prev) => ({ ...prev, expenses: [newExpense, ...prev.expenses] }));
   };
 
-  const handleGetInsights = async () => {
-    setInsightsModalOpen(true);
-    setInsightsLoading(true);
-    const result = await getFinancialInsightsAction({
-      monthlyIncome: data.monthlyIncome,
-      expenses: data.expenses.map(({ description, amount }) => ({
-        description,
-        amount,
-      })),
-    });
-    setInsights(result.insights);
-    setInsightsLoading(false);
-  };
-
   if (!isClient) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
@@ -115,36 +94,25 @@ export default function HomePage() {
   return (
     <div className="flex h-dvh flex-col bg-background font-body text-foreground">
       <header
-        style={{ backgroundColor: "#E6E6FA" }}
         className="p-4 shadow-sm"
       >
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <h1 className="text-xl font-bold text-slate-700">MoneyWise</h1>
-          <Button
-            onClick={handleGetInsights}
-            size="sm"
-            variant="outline"
-            className="bg-white/50 hover:bg-white"
-          >
-            <Sparkles className="mr-2 h-4 w-4" />
-            Get Insights
-          </Button>
+          <h1 className="text-xl font-bold text-foreground">Gastos Flia Ruales Sanango</h1>
         </div>
       </header>
 
       <main className="mx-auto w-full max-w-5xl flex-1 space-y-4 overflow-y-auto p-4">
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-3 gap-2 md:gap-4">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
               <CardTitle className="text-sm font-medium">
                 Monthly Income
               </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="flex items-center justify-between">
+            <CardContent className="flex items-center justify-between p-4 pt-0">
               <p
-                className="text-2xl font-bold"
-                style={{ color: "#2E8B57" /* SeaGreen */ }}
+                className="text-xl font-bold text-green-600 sm:text-2xl"
               >
                 {formatCurrency(data.monthlyIncome)}
               </p>
@@ -159,28 +127,28 @@ export default function HomePage() {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
               <CardTitle className="text-sm font-medium">
                 Total Expenses
               </CardTitle>
               <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-bold text-destructive">
+            <CardContent className="p-4 pt-0">
+              <p className="text-xl font-bold text-destructive sm:text-2xl">
                 {formatCurrency(totalExpenses)}
               </p>
             </CardContent>
           </Card>
           <Card className="bg-primary/10 border-primary/40">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
               <CardTitle className="text-sm font-medium">
                 Remaining Balance
               </CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 pt-0">
               <p
-                className={`text-2xl font-bold ${
+                className={`text-xl font-bold sm:text-2xl ${
                   remainingBalance >= 0 ? "text-green-600" : "text-red-600"
                 }`}
               >
@@ -221,13 +189,6 @@ export default function HomePage() {
           />
         </DialogContent>
       </Dialog>
-
-      <InsightsModal
-        isOpen={isInsightsModalOpen}
-        onClose={() => setInsightsModalOpen(false)}
-        insights={insights}
-        isLoading={isInsightsLoading}
-      />
     </div>
   );
 }
