@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, generateMonthOptions } from "@/lib/utils";
 import { format as formatDate } from "date-fns";
-import type { AllTransactions, Expense } from "@/lib/types";
+import type { Expense, TransactionData } from "@/lib/types";
 import { IncomeModal } from "@/components/moneywise/income-modal";
 import {
   ExpenseForm,
@@ -42,75 +42,106 @@ import {
 import { ExpenseList } from "@/components/moneywise/expense-list";
 import { MonthSelector } from "./month-selector";
 import { Separator } from "@/components/ui/separator";
+import { db } from "@/lib/firebase";
+import {
+  collection,
+  doc,
+  getDoc,
+  getDocs,
+  setDoc,
+  updateDoc,
+} from "firebase/firestore";
 
-const STORAGE_KEY = "moneywise_data";
 const initialMonth = formatDate(new Date(), "yyyy-MM");
 
 export default function HomePage() {
-  const [allData, setAllData] = useState<AllTransactions>({});
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
-  const [isClient, setIsClient] = useState(false);
+  const [currentMonthData, setCurrentMonthData] =
+    useState<TransactionData | null>(null);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [expenseToDelete, setExpenseToDelete] = useState<Expense | null>(null);
 
-  useEffect(() => {
-    setIsClient(true);
+  const fetchAvailableMonths = useCallback(async () => {
     try {
-      const storedData = localStorage.getItem(STORAGE_KEY);
-      if (storedData) {
-        setAllData(JSON.parse(storedData));
+      const querySnapshot = await getDocs(collection(db, "transactions"));
+      const dataMonths = querySnapshot.docs.map((doc) => doc.id);
+
+      const recentMonths = generateMonthOptions(4).map((o) => o.value);
+      const allMonthsSet = new Set([...dataMonths, ...recentMonths]);
+      const sortedMonths = Array.from(allMonthsSet).sort((a, b) =>
+        b.localeCompare(a)
+      );
+      setAvailableMonths(sortedMonths);
+    } catch (error) {
+      console.error("Error fetching available months:", error);
+      // Fallback to recent months on error
+      setAvailableMonths(
+        generateMonthOptions(4).map((o) => o.value)
+      );
+    }
+  }, []);
+
+  const fetchMonthData = useCallback(async (month: string) => {
+    setIsLoading(true);
+    const docRef = doc(db, "transactions", month);
+    try {
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setCurrentMonthData(docSnap.data() as TransactionData);
       } else {
-        // Initialize for current month if no data exists
-        setAllData({ [initialMonth]: { monthlyIncome: 0, expenses: [] } });
+        // If month data doesn't exist, create it.
+        const initialData = { monthlyIncome: 0, expenses: [] };
+        await setDoc(docRef, initialData);
+        setCurrentMonthData(initialData);
       }
     } catch (error) {
-      console.error("Failed to parse data from localStorage", error);
-      setAllData({ [initialMonth]: { monthlyIncome: 0, expenses: [] } });
+      console.error("Error fetching month data:", error);
+      setCurrentMonthData({ monthlyIncome: 0, expenses: [] }); // Fallback state
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    if (isClient) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(allData));
-    }
-  }, [allData, isClient]);
+    fetchAvailableMonths();
+  }, [fetchAvailableMonths]);
 
-  const currentData = useMemo(() => {
-    return allData[selectedMonth] || { monthlyIncome: 0, expenses: [] };
-  }, [allData, selectedMonth]);
+  useEffect(() => {
+    if (selectedMonth) {
+      fetchMonthData(selectedMonth);
+    }
+  }, [selectedMonth, fetchMonthData]);
 
   const remainingBalance = useMemo(() => {
+    if (!currentMonthData) return 0;
     return (
-      currentData.monthlyIncome -
-      currentData.expenses.reduce((sum, exp) => sum + exp.amount, 0)
+      currentMonthData.monthlyIncome -
+      currentMonthData.expenses.reduce((sum, exp) => sum + exp.amount, 0)
     );
-  }, [currentData]);
+  }, [currentMonthData]);
 
   const totalExpenses = useMemo(() => {
-    return currentData.expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  }, [currentData.expenses]);
+    if (!currentMonthData) return 0;
+    return currentMonthData.expenses.reduce((sum, exp) => sum + exp.amount, 0);
+  }, [currentMonthData]);
 
-  const availableMonths = useMemo(() => {
-    const dataMonths = Object.keys(allData);
-    const recentMonths = generateMonthOptions(4).map((o) => o.value);
-    const allMonthsSet = new Set([...dataMonths, ...recentMonths]);
-    const sortedMonths = Array.from(allMonthsSet).sort((a, b) =>
-      b.localeCompare(a)
-    );
-    return sortedMonths;
-  }, [allData]);
-
-  const handleSetIncome = (income: number) => {
-    setAllData((prev) => ({
-      ...prev,
-      [selectedMonth]: {
-        ...(prev[selectedMonth] || { expenses: [] }),
+  const handleSetIncome = async (income: number) => {
+    if (!currentMonthData) return;
+    const docRef = doc(db, "transactions", selectedMonth);
+    try {
+      await setDoc(docRef, { monthlyIncome: income }, { merge: true });
+      setCurrentMonthData((prev) => ({
+        ...(prev || { expenses: [] }),
         monthlyIncome: income,
-      },
-    }));
+      }));
+    } catch (error) {
+      console.error("Error setting income:", error);
+    }
   };
 
   const handleEditClick = (expense: Expense) => {
@@ -122,21 +153,30 @@ export default function HomePage() {
     setExpenseToDelete(expense);
   };
 
-  const confirmDeleteExpense = () => {
+  const confirmDeleteExpense = async () => {
     if (!expenseToDelete) return;
 
     const targetMonth = formatDate(new Date(expenseToDelete.date), "yyyy-MM");
+    const docRef = doc(db, "transactions", targetMonth);
 
-    setAllData((prev) => {
-      const newData = { ...prev };
-      if (newData[targetMonth]) {
-        newData[targetMonth].expenses = newData[targetMonth].expenses.filter(
+    try {
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const currentExpenses = (docSnap.data().expenses || []) as Expense[];
+        const updatedExpenses = currentExpenses.filter(
           (exp) => exp.id !== expenseToDelete.id
         );
+        await updateDoc(docRef, { expenses: updatedExpenses });
+
+        if (targetMonth === selectedMonth) {
+          setCurrentMonthData((prev) => ({ ...prev!, expenses: updatedExpenses }));
+        }
       }
-      return newData;
-    });
-    setExpenseToDelete(null);
+    } catch (error) {
+      console.error("Error deleting expense:", error);
+    } finally {
+      setExpenseToDelete(null);
+    }
   };
 
   const handleCloseExpenseModal = () => {
@@ -144,70 +184,76 @@ export default function HomePage() {
     setEditingExpense(null);
   };
 
-  const handleSaveExpense = (expenseData: ExpenseFormValues) => {
+  const handleSaveExpense = async (expenseData: ExpenseFormValues) => {
     const targetMonth = formatDate(expenseData.date, "yyyy-MM");
 
-    setAllData((prev) => {
-      const newData = { ...prev };
-      let originalMonthIncome = 0;
-
-      // --- REMOVAL (if editing) ---
-      if (editingExpense) {
-        const originalMonth = formatDate(
-          new Date(editingExpense.date),
-          "yyyy-MM"
-        );
-        if (newData[originalMonth]) {
-          originalMonthIncome = newData[originalMonth].monthlyIncome;
-          newData[originalMonth].expenses = newData[
-            originalMonth
-          ].expenses.filter((exp) => exp.id !== editingExpense.id);
-        }
+    // Handle moving an expense to a different month during an edit
+    if (
+      editingExpense &&
+      formatDate(new Date(editingExpense.date), "yyyy-MM") !== targetMonth
+    ) {
+      const originalMonth = formatDate(new Date(editingExpense.date), "yyyy-MM");
+      const originalDocRef = doc(db, "transactions", originalMonth);
+      const originalDocSnap = await getDoc(originalDocRef);
+      if (originalDocSnap.exists()) {
+        const originalExpenses = (
+          originalDocSnap.data().expenses as Expense[]
+        ).filter((exp) => exp.id !== editingExpense.id);
+        await updateDoc(originalDocRef, { expenses: originalExpenses });
       }
+    }
 
-      // --- ADDITION ---
-      const expenseToAdd: Expense = {
-        id: editingExpense ? editingExpense.id : new Date().toISOString(),
+    const targetDocRef = doc(db, "transactions", targetMonth);
+    const docSnap = await getDoc(targetDocRef);
+    let currentExpenses: Expense[] =
+      (docSnap.exists() && docSnap.data().expenses) || [];
+
+    if (editingExpense) {
+      // Edit existing expense
+      const expenseToUpdate: Expense = {
+        ...editingExpense,
+        ...expenseData,
+        date: formatDate(expenseData.date, "yyyy-MM-dd HH:mm"),
+      };
+      currentExpenses = currentExpenses.map((exp) =>
+        exp.id === editingExpense.id ? expenseToUpdate : exp
+      );
+    } else {
+      // Add new expense
+      const newExpense: Expense = {
+        id: new Date().toISOString(),
         description: expenseData.description,
         amount: expenseData.amount,
         date: formatDate(expenseData.date, "yyyy-MM-dd HH:mm"),
       };
+      currentExpenses.push(newExpense);
+    }
 
-      // If target month doesn't exist, create it.
-      if (!newData[targetMonth]) {
-        newData[targetMonth] = {
-          monthlyIncome: editingExpense ? originalMonthIncome : 0,
-          expenses: [],
-        };
+    currentExpenses.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+
+    try {
+      await setDoc(targetDocRef, { expenses: currentExpenses }, { merge: true });
+
+      if (targetMonth !== selectedMonth) {
+        setSelectedMonth(targetMonth);
+      } else {
+        await fetchMonthData(selectedMonth);
       }
-
-      const newExpenses = [
-        ...newData[targetMonth].expenses,
-        expenseToAdd,
-      ].sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-
-      newData[targetMonth].expenses = newExpenses;
-
-      return newData;
-    });
-
-    setSelectedMonth(targetMonth);
-    handleCloseExpenseModal();
+      await fetchAvailableMonths();
+    } catch (error) {
+      console.error("Error saving expense:", error);
+    } finally {
+      handleCloseExpenseModal();
+    }
   };
 
   const handleMonthChange = (month: string) => {
-    if (!allData[month]) {
-      setAllData((prev) => ({
-        ...prev,
-        [month]: { monthlyIncome: 0, expenses: [] },
-      }));
-    }
     setSelectedMonth(month);
   };
 
-  if (!isClient) {
+  if (!currentMonthData) {
     return (
       <div className="flex h-screen w-full items-center justify-center bg-background">
         <div className="h-12 w-12 animate-spin rounded-full border-4 border-primary border-t-transparent"></div>
@@ -239,7 +285,7 @@ export default function HomePage() {
             </CardHeader>
             <CardContent className="flex items-center justify-between p-4 pt-0">
               <p className="text-xl font-bold text-blue-600 sm:text-2xl">
-                {formatCurrency(currentData.monthlyIncome)}
+                {formatCurrency(currentMonthData.monthlyIncome)}
               </p>
               <Button
                 variant="ghost"
@@ -282,7 +328,7 @@ export default function HomePage() {
         <div className="space-y-3">
           <Separator />
           <ExpenseList
-            expenses={currentData.expenses}
+            expenses={currentMonthData.expenses}
             onEdit={handleEditClick}
             onDelete={handleDeleteClick}
           />
@@ -306,7 +352,7 @@ export default function HomePage() {
         isOpen={isIncomeModalOpen}
         onClose={() => setIncomeModalOpen(false)}
         onSave={handleSetIncome}
-        currentIncome={currentData.monthlyIncome}
+        currentIncome={currentMonthData.monthlyIncome}
       />
 
       <Dialog
