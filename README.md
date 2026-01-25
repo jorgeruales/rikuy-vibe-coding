@@ -1,5 +1,6 @@
-# Firebase Studio
+# Rikuy Gastos
+Creado con firebase studio y vibe coding
 
-This is a NextJS starter in Firebase Studio.
+Ayuda a registrar los gastos del mes de manera sencilla y rápida
 
-To get started, take a look at src/app/page.tsx.
+Tienen historico segun mes

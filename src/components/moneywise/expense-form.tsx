@@ -13,14 +13,18 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { InputText } from "primereact/inputtext";
+import { InputNumber } from "primereact/inputnumber";
+import { Calendar } from "primereact/calendar";
 import { DollarSign } from "lucide-react";
 import { format } from "date-fns";
 import type { Expense } from "@/lib/types";
 
 const expenseSchema = z.object({
-  description: z.string().min(1, "Debes ingresar el gastod."),
-  amount: z.coerce.number().positive("EL valor no puede ser 0."),
+  description: z.string().min(1, "Debes ingresar el gasto."),
+  amount: z
+    .number({ required_error: "El valor es requerido.", invalid_type_error: "Debes ingresar un número válido." })
+    .positive("El valor no puede ser 0."),
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe tener el formato YYYY-MM-DD"),
@@ -41,6 +45,12 @@ export function ExpenseForm({
 }: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
+    defaultValues: {
+      description: "",
+      // @ts-ignore - We initialize as null to show empty input, but validate as number
+      amount: null,
+      date: format(new Date(), "yyyy-MM-dd"),
+    },
   });
 
   useEffect(() => {
@@ -55,7 +65,8 @@ export function ExpenseForm({
     } else {
       form.reset({
         description: "",
-        amount: undefined,
+        // @ts-ignore
+        amount: null,
         date: format(new Date(), "yyyy-MM-dd"),
       });
     }
@@ -76,7 +87,12 @@ export function ExpenseForm({
             <FormItem>
               <FormLabel>Descripción</FormLabel>
               <FormControl>
-                <Input placeholder="ej., Café, Frutas" {...field} />
+                <InputText
+                  placeholder="ej., Café, Frutas"
+                  className="w-full"
+                  autoComplete="off"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -90,13 +106,18 @@ export function ExpenseForm({
               <FormLabel>Valor</FormLabel>
               <FormControl>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    type="number"
-                    step="0.01"
+                  <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground z-10" />
+                  <InputNumber
                     placeholder="0.00"
-                    className="pl-8"
-                    {...field}
+                    className="w-full"
+                    inputClassName="pl-8 w-full"
+                    minFractionDigits={2}
+                    maxFractionDigits={2}
+                    value={field.value}
+                    onValueChange={(e) => field.onChange(e.value)}
+                    onBlur={field.onBlur}
+                    ref={field.ref}
+                    useGrouping={false}
                   />
                 </div>
               </FormControl>
@@ -109,9 +130,20 @@ export function ExpenseForm({
           name="date"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Fecha (YYYY-MM-DD)</FormLabel>
+              <FormLabel>Fecha</FormLabel>
               <FormControl>
-                <Input placeholder="YYYY-MM-DD" {...field} />
+                <Calendar
+                  value={field.value ? new Date(field.value + 'T12:00:00') : null}
+                  onChange={(e) => {
+                    if (e.value) {
+                      field.onChange(format(e.value, "yyyy-MM-dd"));
+                    }
+                  }}
+                  dateFormat="yy-mm-dd"
+                  className="w-full"
+                  showIcon
+                  appendTo="self"
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

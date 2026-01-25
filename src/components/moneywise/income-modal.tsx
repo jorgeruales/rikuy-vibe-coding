@@ -21,7 +21,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import { InputNumber } from "primereact/inputnumber";
 import { DollarSign } from "lucide-react";
 
 const incomeSchema = z.object({
@@ -67,7 +67,7 @@ export function IncomeModal({
         <DialogHeader>
           <DialogTitle>Ingresos mensuales</DialogTitle>
           <DialogDescription>
-            Ingresa el valor que recibiste al inicio del mes, 
+            Ingresa el valor que recibiste al inicio del mes,
             si necesitas despues lo podars editar.
           </DialogDescription>
         </DialogHeader>
@@ -82,11 +82,16 @@ export function IncomeModal({
                   <FormControl>
                     <div className="relative">
                       <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                      <Input
-                        type="number"
+                      <InputNumber
                         placeholder="0.00"
-                        className="pl-8"
-                        {...field}
+                        className="w-full"
+                        inputClassName="pl-8 w-full"
+                        minFractionDigits={2}
+                        maxFractionDigits={2}
+                        value={field.value}
+                        onValueChange={(e) => field.onChange(e.value)}
+                        onBlur={field.onBlur}
+                        ref={field.ref}
                       />
                     </div>
                   </FormControl>

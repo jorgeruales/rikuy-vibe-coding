@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import "primereact/resources/themes/lara-dark-cyan/theme.css";
+import "primeicons/primeicons.css";
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
