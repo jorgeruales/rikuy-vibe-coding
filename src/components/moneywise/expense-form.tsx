@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -26,10 +26,10 @@ import { Calendar } from "@/components/ui/calendar";
 import type { Expense } from "@/lib/types";
 
 const expenseSchema = z.object({
-  description: z.string().min(1, "Description is required."),
-  amount: z.coerce.number().positive("Amount must be greater than 0."),
+  description: z.string().min(1, "Debes ingresar el gastod."),
+  amount: z.coerce.number().positive("EL valor no puede ser 0."),
   date: z.date({
-    required_error: "A date is required.",
+    required_error: "Una fecha es necesaria.",
   }),
 });
 
@@ -49,6 +49,8 @@ export function ExpenseForm({
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
   });
+  
+  const [maxDate] = useState(new Date());
 
   useEffect(() => {
     if (expenseToEdit) {
@@ -79,9 +81,9 @@ export function ExpenseForm({
           name="description"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Description</FormLabel>
+              <FormLabel>Descripción</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Coffee, Groceries" {...field} />
+                <Input placeholder="ej., Café, Frutas" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -92,7 +94,7 @@ export function ExpenseForm({
           name="amount"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Amount</FormLabel>
+              <FormLabel>Valor</FormLabel>
               <FormControl>
                 <div className="relative">
                   <DollarSign className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -114,7 +116,7 @@ export function ExpenseForm({
           name="date"
           render={({ field }) => (
             <FormItem className="flex flex-col">
-              <FormLabel>Date</FormLabel>
+              <FormLabel>Fecha</FormLabel>
               <Popover>
                 <PopoverTrigger asChild>
                   <FormControl>
@@ -128,7 +130,7 @@ export function ExpenseForm({
                       {field.value ? (
                         format(field.value, "PPP")
                       ) : (
-                        <span>Pick a date</span>
+                        <span>Selecciona Fecha</span>
                       )}
                       <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
                     </Button>
@@ -140,7 +142,7 @@ export function ExpenseForm({
                     selected={field.value}
                     onSelect={field.onChange}
                     disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
+                      date > maxDate || date < new Date("1900-01-01")
                     }
                     initialFocus
                   />
@@ -152,10 +154,10 @@ export function ExpenseForm({
         />
         <div className="flex justify-end gap-2 pt-4">
           <Button type="button" variant="ghost" onClick={onClose}>
-            Cancel
+            Cancelar
           </Button>
           <Button type="submit">
-            {expenseToEdit ? "Save Changes" : "Add Expense"}
+            {expenseToEdit ? "Guardar" : "Añadir"}
           </Button>
         </div>
       </form>

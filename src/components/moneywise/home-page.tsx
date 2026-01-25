@@ -293,7 +293,7 @@ export default function HomePage() {
                 onClick={() => setIncomeModalOpen(true)}
               >
                 <Edit className="h-4 w-4" />
-                <span className="sr-only">Edit Income</span>
+                <span className="sr-only">Editar Ingresos</span>
               </Button>
             </CardContent>
           </Card>
@@ -303,7 +303,7 @@ export default function HomePage() {
               <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <p className="text-xl font-bold text-destructive sm:text-2xl">
+              <p className="text-xl font-bold text-red-400 sm:text-2xl">
                 {formatCurrency(totalExpenses)}
               </p>
             </CardContent>
@@ -344,7 +344,7 @@ export default function HomePage() {
           className="h-14 w-14 rounded-full shadow-lg"
         >
           <Plus className="h-6 w-6" />
-          <span className="sr-only">Add Expense</span>
+          <span className="sr-only">Añadir gasto</span>
         </Button>
       </div>
 
@@ -368,7 +368,7 @@ export default function HomePage() {
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>
-              {editingExpense ? "Edit Expense" : "Add New Expense"}
+              {editingExpense ? "Editar" : "Añadir"}
             </DialogTitle>
           </DialogHeader>
           <ExpenseForm
@@ -389,19 +389,18 @@ export default function HomePage() {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogTitle>Seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete this
-              expense.
+              El gasto borrado desaparecerá
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDeleteExpense}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Borrar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

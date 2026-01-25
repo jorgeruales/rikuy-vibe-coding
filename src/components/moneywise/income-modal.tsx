@@ -65,10 +65,10 @@ export function IncomeModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Set Monthly Income</DialogTitle>
+          <DialogTitle>Ingresos mensuales</DialogTitle>
           <DialogDescription>
-            Enter your total expected income for this month. You can update this
-            later.
+            Ingresa el valor que recibiste al inicio del mes, 
+            si necesitas despues lo podars editar.
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
@@ -95,7 +95,7 @@ export function IncomeModal({
               )}
             />
             <DialogFooter>
-              <Button type="submit">Save</Button>
+              <Button type="submit">Guardar</Button>
             </DialogFooter>
           </form>
         </Form>
