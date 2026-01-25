@@ -22,7 +22,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { InputNumber } from "primereact/inputnumber";
-import { DollarSign } from "lucide-react";
+import { DollarSign, Loader2 } from "lucide-react";
 
 const incomeSchema = z.object({
   income: z.coerce.number().min(0, "Income must be a positive number."),
@@ -35,6 +35,7 @@ interface IncomeModalProps {
   onClose: () => void;
   onSave: (income: number) => void;
   currentIncome: number;
+  isLoading?: boolean;
 }
 
 export function IncomeModal({
@@ -42,6 +43,7 @@ export function IncomeModal({
   onClose,
   onSave,
   currentIncome,
+  isLoading,
 }: IncomeModalProps) {
   const form = useForm<IncomeFormValues>({
     resolver: zodResolver(incomeSchema),
@@ -58,11 +60,12 @@ export function IncomeModal({
 
   const onSubmit = (data: IncomeFormValues) => {
     onSave(data.income);
-    onClose();
+    // Don't close immediately here, checking if parent handles it or if I should wait.
+    // Parent logic closes strictly in finally, which is fine, but checking if closes too early
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={isLoading ? undefined : onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Ingresos mensuales</DialogTitle>
@@ -85,7 +88,7 @@ export function IncomeModal({
                       <InputNumber
                         placeholder="0.00"
                         className="w-full"
-                        inputClassName="pl-8 w-full"
+                        inputClassName="pl-8 w-full h-12"
                         minFractionDigits={2}
                         maxFractionDigits={2}
                         value={field.value}
@@ -100,7 +103,10 @@ export function IncomeModal({
               )}
             />
             <DialogFooter>
-              <Button type="submit">Guardar</Button>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Guardar
+              </Button>
             </DialogFooter>
           </form>
         </Form>

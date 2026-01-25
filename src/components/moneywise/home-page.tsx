@@ -26,7 +26,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   Edit,
-  Plus,
   TrendingUp,
   TrendingDown,
   Wallet,
@@ -51,6 +50,7 @@ import {
   setDoc,
   updateDoc,
 } from "firebase/firestore";
+import { QuickExpenseForm, type QuickExpenseFormValues } from "./quick-expense-form";
 
 const initialMonth = formatDate(new Date(), "yyyy-MM");
 
@@ -60,6 +60,10 @@ export default function HomePage() {
     useState<TransactionData | null>(null);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+
+  // Loading states for actions
+  const [isSavingExpense, setIsSavingExpense] = useState(false);
+  const [isSavingIncome, setIsSavingIncome] = useState(false);
 
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
@@ -132,6 +136,7 @@ export default function HomePage() {
 
   const handleSetIncome = async (income: number) => {
     if (!currentMonthData) return;
+    setIsSavingIncome(true);
     const docRef = doc(db, "transactions", selectedMonth);
     try {
       await setDoc(docRef, { monthlyIncome: income }, { merge: true });
@@ -139,8 +144,11 @@ export default function HomePage() {
         ...(prev || { expenses: [] }),
         monthlyIncome: income,
       }));
+      setIncomeModalOpen(false);
     } catch (error) {
       console.error("Error setting income:", error);
+    } finally {
+      setIsSavingIncome(false);
     }
   };
 
@@ -173,7 +181,7 @@ export default function HomePage() {
         }
       }
     } catch (error) {
-      console.error("Error deleting expense:", error);
+      console.error("Error borrando gasto:", error);
     } finally {
       setExpenseToDelete(null);
     }
@@ -185,61 +193,62 @@ export default function HomePage() {
   };
 
   const handleSaveExpense = async (expenseData: ExpenseFormValues) => {
+    setIsSavingExpense(true);
     const targetMonth = expenseData.date.substring(0, 7);
 
     // Handle moving an expense to a different month during an edit
-    if (
-      editingExpense &&
-      formatDate(new Date(editingExpense.date), "yyyy-MM") !== targetMonth
-    ) {
-      const originalMonth = formatDate(new Date(editingExpense.date), "yyyy-MM");
-      const originalDocRef = doc(db, "transactions", originalMonth);
-      const originalDocSnap = await getDoc(originalDocRef);
-      if (originalDocSnap.exists()) {
-        const originalExpenses = (
-          originalDocSnap.data().expenses as Expense[]
-        ).filter((exp) => exp.id !== editingExpense.id);
-        await updateDoc(originalDocRef, { expenses: originalExpenses });
-      }
-    }
-
-    const targetDocRef = doc(db, "transactions", targetMonth);
-    const docSnap = await getDoc(targetDocRef);
-    let currentExpenses: Expense[] =
-      (docSnap.exists() && docSnap.data().expenses) || [];
-
-    const newDateTime = `${expenseData.date} ${formatDate(new Date(), "HH:mm")}`;
-
-    if (editingExpense) {
-      const updatedExpense: Expense = {
-        ...editingExpense,
-        description: expenseData.description,
-        amount: expenseData.amount,
-        date: newDateTime,
-      };
-      
-      const existingIndex = currentExpenses.findIndex(e => e.id === editingExpense.id);
-      if (existingIndex !== -1) {
-          currentExpenses[existingIndex] = updatedExpense;
-      } else {
-          currentExpenses.push(updatedExpense);
-      }
-    } else {
-      // Add new expense
-      const newExpense: Expense = {
-        id: new Date().toISOString(),
-        description: expenseData.description,
-        amount: expenseData.amount,
-        date: newDateTime,
-      };
-      currentExpenses.push(newExpense);
-    }
-
-    currentExpenses.sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-    );
-
     try {
+      if (
+        editingExpense &&
+        formatDate(new Date(editingExpense.date), "yyyy-MM") !== targetMonth
+      ) {
+        const originalMonth = formatDate(new Date(editingExpense.date), "yyyy-MM");
+        const originalDocRef = doc(db, "transactions", originalMonth);
+        const originalDocSnap = await getDoc(originalDocRef);
+        if (originalDocSnap.exists()) {
+          const originalExpenses = (
+            originalDocSnap.data().expenses as Expense[]
+          ).filter((exp) => exp.id !== editingExpense.id);
+          await updateDoc(originalDocRef, { expenses: originalExpenses });
+        }
+      }
+
+      const targetDocRef = doc(db, "transactions", targetMonth);
+      const docSnap = await getDoc(targetDocRef);
+      let currentExpenses: Expense[] =
+        (docSnap.exists() && docSnap.data().expenses) || [];
+
+      const newDateTime = `${expenseData.date} ${formatDate(new Date(), "HH:mm")}`;
+
+      if (editingExpense) {
+        const updatedExpense: Expense = {
+          ...editingExpense,
+          description: expenseData.description,
+          amount: expenseData.amount,
+          date: newDateTime,
+        };
+
+        const existingIndex = currentExpenses.findIndex(e => e.id === editingExpense.id);
+        if (existingIndex !== -1) {
+          currentExpenses[existingIndex] = updatedExpense;
+        } else {
+          currentExpenses.push(updatedExpense);
+        }
+      } else {
+        // Add new expense
+        const newExpense: Expense = {
+          id: new Date().toISOString(),
+          description: expenseData.description,
+          amount: expenseData.amount,
+          date: newDateTime,
+        };
+        currentExpenses.push(newExpense);
+      }
+
+      currentExpenses.sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+
       await setDoc(targetDocRef, { expenses: currentExpenses }, { merge: true });
 
       if (targetMonth !== selectedMonth) {
@@ -248,11 +257,20 @@ export default function HomePage() {
         await fetchMonthData(selectedMonth);
       }
       await fetchAvailableMonths();
-    } catch (error) {
-      console.error("Error saving expense:", error);
-    } finally {
       handleCloseExpenseModal();
+    } catch (error) {
+      console.error("Error guardando gasto:", error);
+    } finally {
+      setIsSavingExpense(false);
     }
+  };
+
+  const handleQuickAddExpense = (values: QuickExpenseFormValues) => {
+    const today = new Date();
+    handleSaveExpense({
+      ...values,
+      date: formatDate(today, "yyyy-MM-dd")
+    });
   };
 
   const handleMonthChange = (month: string) => {
@@ -269,7 +287,7 @@ export default function HomePage() {
 
   return (
     <div className="flex h-dvh flex-col bg-background font-body text-foreground">
-      <header className="bg-card p-4 shadow-sm border-b">
+      <header className="bg-card p-2 shadow-sm border-b">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <h1 className="text-l font-bold text-foreground">
             Gastos - Ruales Sanango
@@ -321,9 +339,8 @@ export default function HomePage() {
             </CardHeader>
             <CardContent className="p-4 pt-0">
               <p
-                className={`text-xl font-bold sm:text-2xl ${
-                  remainingBalance >= 0 ? "text-green-600" : "text-red-600"
-                }`}
+                className={`text-xl font-bold sm:text-2xl ${remainingBalance >= 0 ? "text-green-600" : "text-red-600"
+                  }`}
               >
                 {formatCurrency(remainingBalance)}
               </p>
@@ -333,6 +350,12 @@ export default function HomePage() {
 
         <div className="space-y-3">
           <Separator />
+
+          <QuickExpenseForm
+            onSave={handleQuickAddExpense}
+            isLoading={isSavingExpense}
+          />
+
           <ExpenseList
             expenses={currentMonthData.expenses}
             onEdit={handleEditClick}
@@ -341,24 +364,12 @@ export default function HomePage() {
         </div>
       </main>
 
-      <div className="fixed bottom-6 right-6 z-50 ">
-        <Button
-          onClick={() => {
-            setEditingExpense(null);
-            setExpenseModalOpen(true);
-          }}
-          className="h-14 w-14 rounded-full shadow-lg"
-        >
-          <Plus className="h-6 w-6" />
-          <span className="sr-only">Añadir gasto</span>
-        </Button>
-      </div>
-
       <IncomeModal
         isOpen={isIncomeModalOpen}
         onClose={() => setIncomeModalOpen(false)}
         onSave={handleSetIncome}
         currentIncome={currentMonthData.monthlyIncome}
+        isLoading={isSavingIncome}
       />
 
       <Dialog
@@ -374,13 +385,14 @@ export default function HomePage() {
         <DialogContent className="sm:max-w-[425px] top-[5%] translate-y-0">
           <DialogHeader>
             <DialogTitle>
-              {editingExpense ? "Editar" : "Añadir"}
+              Editar Gasto
             </DialogTitle>
           </DialogHeader>
           <ExpenseForm
             onSave={handleSaveExpense}
             onClose={handleCloseExpenseModal}
             expenseToEdit={editingExpense}
+            isLoading={isSavingExpense}
           />
         </DialogContent>
       </Dialog>

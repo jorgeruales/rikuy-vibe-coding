@@ -16,7 +16,7 @@ import {
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
 import { Calendar } from "primereact/calendar";
-import { DollarSign } from "lucide-react";
+import { DollarSign, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import type { Expense } from "@/lib/types";
 
@@ -36,12 +36,14 @@ interface ExpenseFormProps {
   onSave: (expense: ExpenseFormValues) => void;
   onClose: () => void;
   expenseToEdit?: Expense | null;
+  isLoading?: boolean;
 }
 
 export function ExpenseForm({
   onSave,
   onClose,
   expenseToEdit,
+  isLoading,
 }: ExpenseFormProps) {
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
@@ -74,7 +76,8 @@ export function ExpenseForm({
 
   const onSubmit = (data: ExpenseFormValues) => {
     onSave(data);
-    onClose();
+    // Don't close immediately to show state, parent handles close or we wait for prop change
+    // But current logic in parent is to await save then close.
   };
 
   return (
@@ -89,7 +92,7 @@ export function ExpenseForm({
               <FormControl>
                 <InputText
                   placeholder="ej., Café, Frutas"
-                  className="w-full"
+                  className="w-full h-12"
                   autoComplete="off"
                   {...field}
                 />
@@ -110,7 +113,7 @@ export function ExpenseForm({
                   <InputNumber
                     placeholder="0.00"
                     className="w-full"
-                    inputClassName="pl-8 w-full"
+                    inputClassName="pl-8 w-full h-12"
                     minFractionDigits={2}
                     maxFractionDigits={2}
                     value={field.value}
@@ -141,6 +144,7 @@ export function ExpenseForm({
                   }}
                   dateFormat="yy-mm-dd"
                   className="w-full"
+                  inputClassName="h-12 w-full"
                   showIcon
                   appendTo="self"
                 />
@@ -150,10 +154,11 @@ export function ExpenseForm({
           )}
         />
         <div className="flex justify-end gap-2 pt-4">
-          <Button type="button" variant="ghost" onClick={onClose}>
+          <Button type="button" variant="ghost" onClick={onClose} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button type="submit">
+          <Button type="submit" disabled={isLoading}>
+            {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             {expenseToEdit ? "Guardar" : "Añadir"}
           </Button>
         </div>
