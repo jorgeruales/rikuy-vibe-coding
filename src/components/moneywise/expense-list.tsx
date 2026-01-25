@@ -86,7 +86,7 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
                 onClick={() => onEdit(expense)}
               >
                 <Edit className="h-4 w-4" />
-                <span className="sr-only">Edit Expense</span>
+                <span className="sr-only">Editar Gasto</span>
               </Button>
               <Button
                 variant="ghost"
@@ -95,7 +95,7 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
                 onClick={() => onDelete(expense)}
               >
                 <Trash2 className="h-4 w-4" />
-                <span className="sr-only">Delete Expense</span>
+                <span className="sr-only">Borrar</span>
               </Button>
             </div>
           </CardContent>

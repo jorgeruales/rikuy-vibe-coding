@@ -284,7 +284,7 @@ export default function HomePage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="flex items-center justify-between p-4 pt-0">
-              <p className="text-xl font-bold text-blue-600 sm:text-2xl">
+              <p className="text-xl font-bold text-blue-500 sm:text-2xl">
                 {formatCurrency(currentMonthData.monthlyIncome)}
               </p>
               <Button
@@ -303,12 +303,12 @@ export default function HomePage() {
               <TrendingDown className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <p className="text-xl font-bold text-red-400 sm:text-2xl">
+              <p className="text-xl font-bold text-red-500 sm:text-2xl">
                 {formatCurrency(totalExpenses)}
               </p>
             </CardContent>
           </Card>
-          <Card className="border-primary/40 bg-primary/10">
+          <Card className="border-primary/40">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 p-4 pb-2">
               <CardTitle className="text-sm font-medium">Saldo</CardTitle>
               <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -335,7 +335,7 @@ export default function HomePage() {
         </div>
       </main>
 
-      <div className="fixed bottom-6 right-6 z-50">
+      <div className="fixed bottom-6 right-6 z-50 ">
         <Button
           onClick={() => {
             setEditingExpense(null);
