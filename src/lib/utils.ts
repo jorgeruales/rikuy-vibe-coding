@@ -23,9 +23,16 @@ export function generateMonthOptions(
   for (let i = 0; i < count; i++) {
     const date = subMonths(now, i);
     const value = format(date, "yyyy-MM");
-    const rawLabel = format(date, "MMMM - yyyy", { locale: es });
-    const label = rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
+    const label = formatMonthForDisplay(value);
     options.push({ value, label });
   }
   return options;
+}
+
+export function formatMonthForDisplay(monthValue: string): string {
+  // The 'yyyy-MM' format can cause timezone issues if we just parse it.
+  // Using 'yyyy-MM-dd' and a day in the middle of the month is safer.
+  const date = new Date(`${monthValue}-15T12:00:00Z`);
+  const rawLabel = format(date, "MMMM - yyyy", { locale: es });
+  return rawLabel.charAt(0).toUpperCase() + rawLabel.slice(1);
 }

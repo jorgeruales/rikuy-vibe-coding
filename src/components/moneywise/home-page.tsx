@@ -31,7 +31,7 @@ import {
   TrendingDown,
   Wallet,
 } from "lucide-react";
-import { formatCurrency } from "@/lib/utils";
+import { formatCurrency, generateMonthOptions } from "@/lib/utils";
 import { format as formatDate } from "date-fns";
 import type { AllTransactions, Expense } from "@/lib/types";
 import { IncomeModal } from "@/components/moneywise/income-modal";
@@ -93,6 +93,16 @@ export default function HomePage() {
     return currentData.expenses.reduce((sum, exp) => sum + exp.amount, 0);
   }, [currentData.expenses]);
 
+  const availableMonths = useMemo(() => {
+    const dataMonths = Object.keys(allData);
+    const recentMonths = generateMonthOptions(4).map((o) => o.value);
+    const allMonthsSet = new Set([...dataMonths, ...recentMonths]);
+    const sortedMonths = Array.from(allMonthsSet).sort((a, b) =>
+      b.localeCompare(a)
+    );
+    return sortedMonths;
+  }, [allData]);
+
   const handleSetIncome = (income: number) => {
     setAllData((prev) => ({
       ...prev,
@@ -139,22 +149,23 @@ export default function HomePage() {
 
     setAllData((prev) => {
       const newData = { ...prev };
+      let originalMonthIncome = 0;
 
-      // If editing, first remove the old one
+      // --- REMOVAL (if editing) ---
       if (editingExpense) {
         const originalMonth = formatDate(
           new Date(editingExpense.date),
           "yyyy-MM"
         );
         if (newData[originalMonth]) {
-          newData[originalMonth].expenses =
-            newData[originalMonth].expenses.filter(
-              (exp) => exp.id !== editingExpense.id
-            );
+          originalMonthIncome = newData[originalMonth].monthlyIncome;
+          newData[originalMonth].expenses = newData[
+            originalMonth
+          ].expenses.filter((exp) => exp.id !== editingExpense.id);
         }
       }
 
-      // Now, add the new/updated expense
+      // --- ADDITION ---
       const expenseToAdd: Expense = {
         id: editingExpense ? editingExpense.id : new Date().toISOString(),
         description: expenseData.description,
@@ -162,24 +173,22 @@ export default function HomePage() {
         date: formatDate(expenseData.date, "yyyy-MM-dd HH:mm"),
       };
 
-      const monthData = newData[targetMonth] || {
-        monthlyIncome: 0,
-        expenses: [],
-      };
+      // If target month doesn't exist, create it.
+      if (!newData[targetMonth]) {
+        newData[targetMonth] = {
+          monthlyIncome: editingExpense ? originalMonthIncome : 0,
+          expenses: [],
+        };
+      }
 
-      const newExpenses = [...monthData.expenses, expenseToAdd].sort(
+      const newExpenses = [
+        ...newData[targetMonth].expenses,
+        expenseToAdd,
+      ].sort(
         (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
       );
 
-      newData[targetMonth] = {
-        ...monthData,
-        expenses: newExpenses,
-      };
-
-      if (editingExpense && !newData[targetMonth].monthlyIncome) {
-        newData[targetMonth].monthlyIncome =
-          prev[selectedMonth]?.monthlyIncome || 0;
-      }
+      newData[targetMonth].expenses = newExpenses;
 
       return newData;
     });
@@ -216,6 +225,7 @@ export default function HomePage() {
           <MonthSelector
             selectedMonth={selectedMonth}
             onMonthChange={handleMonthChange}
+            availableMonths={availableMonths}
           />
         </div>
       </header>

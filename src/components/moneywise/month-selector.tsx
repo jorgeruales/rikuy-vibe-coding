@@ -7,19 +7,26 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { generateMonthOptions } from "@/lib/utils";
+import { formatMonthForDisplay } from "@/lib/utils";
 import { useMemo } from "react";
 
 interface MonthSelectorProps {
   selectedMonth: string;
   onMonthChange: (month: string) => void;
+  availableMonths: string[];
 }
 
 export function MonthSelector({
   selectedMonth,
   onMonthChange,
+  availableMonths,
 }: MonthSelectorProps) {
-  const monthOptions = useMemo(() => generateMonthOptions(4), []);
+  const monthOptions = useMemo(() => {
+    return availableMonths.map((month) => ({
+      value: month,
+      label: formatMonthForDisplay(month),
+    }));
+  }, [availableMonths]);
 
   return (
     <Select value={selectedMonth} onValueChange={onMonthChange}>
