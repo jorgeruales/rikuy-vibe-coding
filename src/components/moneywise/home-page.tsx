@@ -283,8 +283,8 @@ export default function HomePage() {
               <CardTitle className="text-sm font-medium">Ingresos</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
-            <CardContent className="flex items-center justify-between p-4 pt-0">
-              <p className="text-xl font-bold text-blue-500 sm:text-2xl">
+            <CardContent className="flex items-center justify-between p-2 pt-0">
+              <p className="text-xl font-bold text-blue-500 sm:text-xl">
                 {formatCurrency(currentMonthData.monthlyIncome)}
               </p>
               <Button
@@ -365,7 +365,7 @@ export default function HomePage() {
           }
         }}
       >
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[425px] top-[5%] translate-y-0">
           <DialogHeader>
             <DialogTitle>
               {editingExpense ? "Editar" : "Añadir"}

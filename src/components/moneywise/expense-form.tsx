@@ -49,7 +49,7 @@ export function ExpenseForm({
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
   });
-  
+
   const [maxDate] = useState(new Date());
 
   useEffect(() => {

@@ -65,9 +65,9 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
     <div className="space-y-3">
       {expenses.map((expense) => (
         <Card key={expense.id} className="transition-all hover:shadow-md">
-          <CardContent className="flex items-center justify-between p-4">
+          <CardContent className="flex items-center justify-between p-2">
             <div className="flex items-center gap-4">
-              <div className="rounded-full bg-secondary p-3">
+              <div className="rounded-full bg-secondary p-1">
                 {getIconForDescription(expense.description)}
               </div>
               <div>
