@@ -185,7 +185,7 @@ export default function HomePage() {
   };
 
   const handleSaveExpense = async (expenseData: ExpenseFormValues) => {
-    const targetMonth = formatDate(expenseData.date, "yyyy-MM");
+    const targetMonth = expenseData.date.substring(0, 7);
 
     // Handle moving an expense to a different month during an edit
     if (
@@ -208,23 +208,29 @@ export default function HomePage() {
     let currentExpenses: Expense[] =
       (docSnap.exists() && docSnap.data().expenses) || [];
 
+    const newDateTime = `${expenseData.date} ${formatDate(new Date(), "HH:mm")}`;
+
     if (editingExpense) {
-      // Edit existing expense
-      const expenseToUpdate: Expense = {
+      const updatedExpense: Expense = {
         ...editingExpense,
-        ...expenseData,
-        date: formatDate(expenseData.date, "yyyy-MM-dd HH:mm"),
+        description: expenseData.description,
+        amount: expenseData.amount,
+        date: newDateTime,
       };
-      currentExpenses = currentExpenses.map((exp) =>
-        exp.id === editingExpense.id ? expenseToUpdate : exp
-      );
+      
+      const existingIndex = currentExpenses.findIndex(e => e.id === editingExpense.id);
+      if (existingIndex !== -1) {
+          currentExpenses[existingIndex] = updatedExpense;
+      } else {
+          currentExpenses.push(updatedExpense);
+      }
     } else {
       // Add new expense
       const newExpense: Expense = {
         id: new Date().toISOString(),
         description: expenseData.description,
         amount: expenseData.amount,
-        date: formatDate(expenseData.date, "yyyy-MM-dd HH:mm"),
+        date: newDateTime,
       };
       currentExpenses.push(newExpense);
     }
@@ -265,7 +271,7 @@ export default function HomePage() {
     <div className="flex h-dvh flex-col bg-background font-body text-foreground">
       <header className="bg-card p-4 shadow-sm border-b">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
-          <h1 className="text-xl font-bold text-foreground">
+          <h1 className="text-l font-bold text-foreground">
             Gastos - Ruales Sanango
           </h1>
           <MonthSelector

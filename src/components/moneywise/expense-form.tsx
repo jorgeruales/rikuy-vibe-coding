@@ -14,23 +14,16 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { DollarSign, CalendarIcon } from "lucide-react";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+import { DollarSign } from "lucide-react";
 import { format } from "date-fns";
-import { Calendar } from "@/components/ui/calendar";
 import type { Expense } from "@/lib/types";
 
 const expenseSchema = z.object({
   description: z.string().min(1, "Debes ingresar el gastod."),
   amount: z.coerce.number().positive("EL valor no puede ser 0."),
-  date: z.date({
-    required_error: "Una fecha es necesaria.",
-  }),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe tener el formato YYYY-MM-DD"),
 });
 
 export type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -55,13 +48,15 @@ export function ExpenseForm({
       form.reset({
         description: expenseToEdit.description,
         amount: expenseToEdit.amount,
-        date: expenseToEdit.date ? new Date(expenseToEdit.date) : new Date(),
+        date: expenseToEdit.date
+          ? format(new Date(expenseToEdit.date), "yyyy-MM-dd")
+          : format(new Date(), "yyyy-MM-dd"),
       });
     } else {
       form.reset({
         description: "",
         amount: undefined,
-        date: new Date(),
+        date: format(new Date(), "yyyy-MM-dd"),
       });
     }
   }, [expenseToEdit, form]);
@@ -113,40 +108,11 @@ export function ExpenseForm({
           control={form.control}
           name="date"
           render={({ field }) => (
-            <FormItem className="flex flex-col">
-              <FormLabel>Fecha</FormLabel>
-              <Popover>
-                <PopoverTrigger asChild>
-                  <FormControl>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "w-full pl-3 text-left font-normal",
-                        !field.value && "text-muted-foreground"
-                      )}
-                    >
-                      {field.value ? (
-                        format(field.value, "PPP")
-                      ) : (
-                        <span>Selecciona Fecha</span>
-                      )}
-                      <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                    </Button>
-                  </FormControl>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={field.value}
-                    onSelect={field.onChange}
-                    defaultMonth={field.value}
-                    toDate={new Date()}
-                    disabled={(date) =>
-                      date > new Date() || date < new Date("1900-01-01")
-                    }
-                  />
-                </PopoverContent>
-              </Popover>
+            <FormItem>
+              <FormLabel>Fecha (YYYY-MM-DD)</FormLabel>
+              <FormControl>
+                <Input placeholder="YYYY-MM-DD" {...field} />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}
