@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -49,8 +49,6 @@ export function ExpenseForm({
   const form = useForm<ExpenseFormValues>({
     resolver: zodResolver(expenseSchema),
   });
-
-  const [maxDate] = useState(new Date());
 
   useEffect(() => {
     if (expenseToEdit) {
@@ -141,10 +139,11 @@ export function ExpenseForm({
                     mode="single"
                     selected={field.value}
                     onSelect={field.onChange}
+                    defaultMonth={field.value}
+                    toDate={new Date()}
                     disabled={(date) =>
-                      date > maxDate || date < new Date("1900-01-01")
+                      date > new Date() || date < new Date("1900-01-01")
                     }
-                    initialFocus
                   />
                 </PopoverContent>
               </Popover>

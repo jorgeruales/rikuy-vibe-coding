@@ -72,11 +72,11 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
               </div>
               <div>
                 <p className="font-semibold capitalize">{expense.description}</p>
-                <p className="text-sm text-muted-foreground">{expense.date}</p>
+                <p className="text-xs text-muted-foreground">{expense.date}</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <p className="text-lg font-bold text-destructive">
+              <p className="text-sm font-bold text-red-400">
                 -{formatCurrency(expense.amount)}
               </p>
               <Button
@@ -91,7 +91,7 @@ export function ExpenseList({ expenses, onEdit, onDelete }: ExpenseListProps) {
               <Button
                 variant="ghost"
                 size="icon"
-                className="h-8 w-8 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                className="h-8 w-8 text-red-500 hover:bg-destructive/10 hover:text-destructive"
                 onClick={() => onDelete(expense)}
               >
                 <Trash2 className="h-4 w-4" />
