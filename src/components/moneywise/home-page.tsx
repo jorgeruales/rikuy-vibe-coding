@@ -30,7 +30,7 @@ import {
   TrendingDown,
   Wallet,
 } from "lucide-react";
-import { formatCurrency, generateMonthOptions } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 import { format as formatDate } from "date-fns";
 import type { Expense, TransactionData } from "@/lib/types";
 import { IncomeModal } from "@/components/moneywise/income-modal";
@@ -103,18 +103,16 @@ export default function HomePage({ userId, onLogout }: { userId: string, onLogou
       const querySnapshot = await getDocs(collection(db, "users", userId, "transactions"));
       const dataMonths = querySnapshot.docs.map((doc) => doc.id);
 
-      const recentMonths = generateMonthOptions(4).map((o) => o.value);
-      const allMonthsSet = new Set([...dataMonths, ...recentMonths]);
+      // Ensure the current month is always available at minimum
+      const allMonthsSet = new Set([...dataMonths, initialMonth]);
       const sortedMonths = Array.from(allMonthsSet).sort((a, b) =>
         b.localeCompare(a)
       );
       setAvailableMonths(sortedMonths);
     } catch (error) {
       console.error("Error fetching available months:", error);
-      // Fallback to recent months on error
-      setAvailableMonths(
-        generateMonthOptions(4).map((o) => o.value)
-      );
+      // Fallback to initial month on error
+      setAvailableMonths([initialMonth]);
     }
   }, [userId]);
 
@@ -126,8 +124,32 @@ export default function HomePage({ userId, onLogout }: { userId: string, onLogou
       if (docSnap.exists()) {
         setCurrentMonthData(docSnap.data() as TransactionData);
       } else {
-        // If month data doesn't exist, create it.
-        const initialData = { monthlyIncome: 0, expenses: [] };
+        // If month data doesn't exist, create it with recurring expenses from previous months
+        // Logic: Find the most recent month with data to copy from
+        const querySnapshot = await getDocs(
+          collection(db, "users", userId, "transactions")
+        );
+
+        let recurringExpenses: Expense[] = [];
+        if (!querySnapshot.empty) {
+          // Sort docs by ID (YYYY-MM) descending to get latest existing month
+          const sortedDocs = querySnapshot.docs.sort((a, b) => b.id.localeCompare(a.id));
+          const latestDoc = sortedDocs[0]; // This is the latest month BEFORE the current one is created
+
+          if (latestDoc) {
+            const latestData = latestDoc.data() as TransactionData;
+            // Copy recurring expenses
+            recurringExpenses = latestData.expenses
+              .filter(exp => exp.isRecurring)
+              .map(exp => ({
+                ...exp,
+                id: crypto.randomUUID(), // New ID for the new month
+                date: `${month}-01` // Default to 1st of the new month
+              }));
+          }
+        }
+
+        const initialData = { monthlyIncome: 0, expenses: recurringExpenses };
         await setDoc(docRef, initialData);
         setCurrentMonthData(initialData);
       }
@@ -254,6 +276,7 @@ export default function HomePage({ userId, onLogout }: { userId: string, onLogou
           description: expenseData.description,
           amount: expenseData.amount,
           date: newDateTime,
+          isRecurring: expenseData.isRecurring,
         };
 
         const existingIndex = currentExpenses.findIndex(e => e.id === editingExpense.id);
@@ -265,10 +288,11 @@ export default function HomePage({ userId, onLogout }: { userId: string, onLogou
       } else {
         // Add new expense
         const newExpense: Expense = {
-          id: new Date().toISOString(),
+          id: crypto.randomUUID(),
           description: expenseData.description,
           amount: expenseData.amount,
           date: newDateTime,
+          isRecurring: expenseData.isRecurring,
         };
         currentExpenses.push(newExpense);
       }
@@ -297,7 +321,8 @@ export default function HomePage({ userId, onLogout }: { userId: string, onLogou
     const today = new Date();
     handleSaveExpense({
       ...values,
-      date: formatDate(today, "yyyy-MM-dd")
+      date: formatDate(today, "yyyy-MM-dd"),
+      isRecurring: false
     });
   };
 

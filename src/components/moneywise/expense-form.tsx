@@ -16,7 +16,8 @@ import {
 import { InputText } from "primereact/inputtext";
 import { InputNumber } from "primereact/inputnumber";
 import { Calendar } from "primereact/calendar";
-import { DollarSign, Loader2 } from "lucide-react";
+import { ToggleButton } from "primereact/togglebutton";
+import { DollarSign, Loader2, RefreshCw } from "lucide-react";
 import { format } from "date-fns";
 import type { Expense } from "@/lib/types";
 
@@ -28,6 +29,7 @@ const expenseSchema = z.object({
   date: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/, "La fecha debe tener el formato YYYY-MM-DD"),
+  isRecurring: z.boolean().default(false),
 });
 
 export type ExpenseFormValues = z.infer<typeof expenseSchema>;
@@ -52,6 +54,7 @@ export function ExpenseForm({
       // @ts-ignore - We initialize as null to show empty input, but validate as number
       amount: null,
       date: format(new Date(), "yyyy-MM-dd"),
+      isRecurring: false,
     },
   });
 
@@ -63,6 +66,7 @@ export function ExpenseForm({
         date: expenseToEdit.date
           ? format(new Date(expenseToEdit.date), "yyyy-MM-dd")
           : format(new Date(), "yyyy-MM-dd"),
+        isRecurring: expenseToEdit.isRecurring || false,
       });
     } else {
       form.reset({
@@ -70,6 +74,7 @@ export function ExpenseForm({
         // @ts-ignore
         amount: null,
         date: format(new Date(), "yyyy-MM-dd"),
+        isRecurring: false,
       });
     }
   }, [expenseToEdit, form]);
@@ -150,6 +155,31 @@ export function ExpenseForm({
                 />
               </FormControl>
               <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="isRecurring"
+          render={({ field }) => (
+            <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+              <div className="space-y-0.5">
+                <FormLabel>Gasto Recurrente</FormLabel>
+                <div className="text-[0.8rem] text-muted-foreground">
+                  Se copiará automáticamente al nuevo mes.
+                </div>
+              </div>
+              <FormControl>
+                <ToggleButton
+                  checked={field.value}
+                  onChange={(e) => field.onChange(e.value)}
+                  onLabel="Sí"
+                  offLabel="No"
+                  onIcon="pi pi-check"
+                  offIcon="pi pi-times"
+                  className="w-20"
+                />
+              </FormControl>
             </FormItem>
           )}
         />
