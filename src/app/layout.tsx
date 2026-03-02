@@ -5,7 +5,7 @@ import "primeicons/primeicons.css";
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'MoneyWise',
+  title: 'RikuyGastos',
   description: 'Track your monthly expenses and gain financial insights.',
 };
 
