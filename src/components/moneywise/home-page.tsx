@@ -42,6 +42,8 @@ import { ExpenseList } from "@/components/moneywise/expense-list";
 import { MonthSelector } from "./month-selector";
 import { Separator } from "@/components/ui/separator";
 import { db } from "@/lib/firebase";
+import * as SwitchPrimitive from "@radix-ui/react-switch";
+import { Power } from "lucide-react";
 import {
   collection,
   doc,
@@ -54,12 +56,38 @@ import { QuickExpenseForm, type QuickExpenseFormValues } from "./quick-expense-f
 
 const initialMonth = formatDate(new Date(), "yyyy-MM");
 
-export default function HomePage() {
+export default function HomePage({ userId, onLogout }: { userId: string, onLogout: () => void }) {
   const [selectedMonth, setSelectedMonth] = useState<string>(initialMonth);
   const [currentMonthData, setCurrentMonthData] =
     useState<TransactionData | null>(null);
   const [availableMonths, setAvailableMonths] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  // Theme state (light by default)
+  const [isDarkMode, setIsDarkMode] = useState<boolean>(false);
+
+  // Initialize theme from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const initialDark = stored ? stored === "dark" : false;
+    setIsDarkMode(initialDark);
+    if (initialDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const toggleTheme = (checked: boolean) => {
+    setIsDarkMode(checked);
+    if (checked) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   // Loading states for actions
   const [isSavingExpense, setIsSavingExpense] = useState(false);
@@ -72,7 +100,7 @@ export default function HomePage() {
 
   const fetchAvailableMonths = useCallback(async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "transactions"));
+      const querySnapshot = await getDocs(collection(db, "users", userId, "transactions"));
       const dataMonths = querySnapshot.docs.map((doc) => doc.id);
 
       const recentMonths = generateMonthOptions(4).map((o) => o.value);
@@ -88,11 +116,11 @@ export default function HomePage() {
         generateMonthOptions(4).map((o) => o.value)
       );
     }
-  }, []);
+  }, [userId]);
 
   const fetchMonthData = useCallback(async (month: string) => {
     setIsLoading(true);
-    const docRef = doc(db, "transactions", month);
+    const docRef = doc(db, "users", userId, "transactions", month);
     try {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
@@ -109,7 +137,7 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     fetchAvailableMonths();
@@ -137,7 +165,7 @@ export default function HomePage() {
   const handleSetIncome = async (income: number) => {
     if (!currentMonthData) return;
     setIsSavingIncome(true);
-    const docRef = doc(db, "transactions", selectedMonth);
+    const docRef = doc(db, "users", userId, "transactions", selectedMonth);
     try {
       await setDoc(docRef, { monthlyIncome: income }, { merge: true });
       setCurrentMonthData((prev) => ({
@@ -165,7 +193,7 @@ export default function HomePage() {
     if (!expenseToDelete) return;
 
     const targetMonth = formatDate(new Date(expenseToDelete.date), "yyyy-MM");
-    const docRef = doc(db, "transactions", targetMonth);
+    const docRef = doc(db, "users", userId, "transactions", targetMonth);
 
     try {
       const docSnap = await getDoc(docRef);
@@ -203,7 +231,7 @@ export default function HomePage() {
         formatDate(new Date(editingExpense.date), "yyyy-MM") !== targetMonth
       ) {
         const originalMonth = formatDate(new Date(editingExpense.date), "yyyy-MM");
-        const originalDocRef = doc(db, "transactions", originalMonth);
+        const originalDocRef = doc(db, "users", userId, "transactions", originalMonth);
         const originalDocSnap = await getDoc(originalDocRef);
         if (originalDocSnap.exists()) {
           const originalExpenses = (
@@ -213,7 +241,7 @@ export default function HomePage() {
         }
       }
 
-      const targetDocRef = doc(db, "transactions", targetMonth);
+      const targetDocRef = doc(db, "users", userId, "transactions", targetMonth);
       const docSnap = await getDoc(targetDocRef);
       let currentExpenses: Expense[] =
         (docSnap.exists() && docSnap.data().expenses) || [];
@@ -290,13 +318,33 @@ export default function HomePage() {
       <header className="bg-card p-2 shadow-sm border-b">
         <div className="mx-auto flex max-w-5xl items-center justify-between">
           <h1 className="text-l font-bold text-foreground">
-            Gastos - Ruales Sanango
+            Rikuy
           </h1>
-          <MonthSelector
-            selectedMonth={selectedMonth}
-            onMonthChange={handleMonthChange}
-            availableMonths={availableMonths}
-          />
+          {/* Theme toggle switch */}
+          <SwitchPrimitive.Root
+            id="theme-toggle"
+            className="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 data-[state=checked]:bg-blue-500 data-[state=unchecked]:bg-gray-200"
+            checked={isDarkMode}
+            onCheckedChange={toggleTheme}
+          >
+            <SwitchPrimitive.Thumb
+              className="pointer-events-none block h-4 w-4 rounded-full bg-white shadow-lg transition-transform duration-200 ease-in-out data-[state=checked]:translate-x-4"
+            />
+          </SwitchPrimitive.Root>
+
+          <div className="flex flex-row items-center gap-2">
+            <MonthSelector
+              selectedMonth={selectedMonth}
+              onMonthChange={handleMonthChange}
+              availableMonths={availableMonths}
+            />
+
+
+            <Button variant="ghost" size="icon" onClick={onLogout} aria-label="Logout">
+              <Power className="h-5 w-5" />
+            </Button>
+
+          </div>
         </div>
       </header>
 
